@@ -1,7 +1,7 @@
 import express from "express"
 import bodyParser from "body-parser"
 import cors from "cors" //allow cross origin requests
-import pool from "../db.js"
+import db from "../db.js"
 import bcrypt from "bcryptjs"
 
 
@@ -15,12 +15,14 @@ authRouter.use(bodyParser.json());
 
 
 //login
+
 authRouter.post('/login',async (req,res)=>{
     const {email,password} = req.body;
 
     try{
-        const result = await pool.query('SELECT * FROM users WHERE email =$1',[email]);
+        const result = await db.one('SELECT * FROM users WHERE email =$1',[email]);
         const user = result.rows[0];
+        console.log(user);
 
         if(user){
             const match =await bcrypt.compare(password, user.password);
@@ -32,6 +34,7 @@ authRouter.post('/login',async (req,res)=>{
         }else{
             return res.status(404).json({error:'internal server error'});
         }
+
         
     }catch(err){
         console.error(err);
@@ -44,7 +47,8 @@ const isValidGmail = (email) => /^[a-zA-Z0-9._%+-]+@gmail\.com$/.test(email);
 
 authRouter.post('/signup',async(req,res)=>{
     const {email, password,confirmPassword} = req.body;
-
+    console.log("example");
+    
     if(!isValidGmail(email)){   
         return res.status(400).json({error: 'Invalid email! Please enter Correct Email ID'});
     }
@@ -55,7 +59,7 @@ authRouter.post('/signup',async(req,res)=>{
 
     try{
         const hashedPassword = await bcrypt.hash(password, 10);
-        await pool.query('INSERT INTO users (email,password) VALUES ($1,$2)',[email,hashedPassword]);
+        await db.one('INSERT INTO users (email,password) VALUES ($1,$2)',[email,hashedPassword]);
         res.status(201).json({message:'user registered successfully!'});
 
     }catch(err){
